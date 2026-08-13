@@ -3,4 +3,6 @@ name = "blank-app-1"
 version = "0.1.0"
 dependencies = [
     "streamlit",
+    "matplotlib",
+    "numpy"
 ]
