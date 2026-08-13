@@ -8,7 +8,7 @@ import urllib.error
 st.set_page_config(page_title="Visueller Mathe-Tutor", page_icon="🧮", layout="centered")
 
 st.title("🧮 Dein interaktiver & visueller Mathe-Tutor")
-st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und Zeichnungen.")
+st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und Grafiken.")
 
 # API Key
 api_key = st.secrets.get("GROQ_API_KEY", None)
@@ -22,38 +22,30 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state:
     st.session_state.level = "normal"
 
-# System Prompt für hochwertige, farbige Lehrbuch-Grafiken
+# Wörterbuch mit perfekten, vorgeprüften Lehrbuch-Grafiken
+STATIC_IMAGES = {
+    "pythagoras": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Pythagorean.svg/600px-Pythagorean.svg.png",
+        "title": "📐 Der Satz des Pythagoras (Katheten- und Hypotenusenquadrate)"
+    },
+    "einheitskreis": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/600px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png",
+        "title": "⭕ Sinus und Kosinus am Einheitskreis"
+    },
+    "strahlensatz": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Strahlensatz_1.svg/600px-Strahlensatz_1.svg.png",
+        "title": "📐 Der erste Strahlensatz"
+    }
+}
+
 system_prompt = (
     "Du bist ein freundlicher, geduldiger und VISUELLER Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
     "STRIKTE REGELN:\n"
     "1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.\n"
-    "2. ERZEUGE KEINE EXTERNEN BILD-URLS (KEINE Markdown-Links zu Bildern)!\n"
-    "3. ZEICHNUNGEN & GRAFIKEN:\n"
-    "   Wenn nach einer Grafik oder Visualisierung gefragt wird (z.B. Pythagoras, Geometrie, Parabeln), erstelle IMMER einen fehlerfreien `python_plot` Codeblock.\n"
-    "   - Bilde geometrische Formen SCHÖN und FARBIG ab (z.B. mit matplotip.patches.Rectangle oder Polygon).\n"
-    "   - Fülle Flächen mit passender Transparenz (alpha=0.4), wähle schöne Farben (Blau, Rot, Grün) und beschrifte die Seiten/Winkel direkt im Bild mit ax.text().\n\n"
-    "BEISPIEL PYTHAGORAS LEHRBUCH-GRAFIK:\n"
-    "```python_plot\n"
-    "import matplotlib.pyplot as plt\n"
-    "import matplotlib.patches as patches\n\n"
-    "fig, ax = plt.subplots(figsize=(6, 6))\n"
-    "# Dreieck\n"
-    "ax.plot([0, 4, 0, 0], [0, 0, 3, 0], 'k-', linewidth=2.5)\n"
-    "# Kathetenquadrat a^2 (rot)\n"
-    "ax.add_patch(patches.Rectangle((0, 0), -3, 3, facecolor='#ff6b6b', edgecolor='red', alpha=0.5, label='a² = 9'))\n"
-    "# Kathetenquadrat b^2 (blau)\n"
-    "ax.add_patch(patches.Rectangle((0, 0), 4, -4, facecolor='#4d96ff', edgecolor='blue', alpha=0.5, label='b² = 16'))\n"
-    "# Beschriftungen\n"
-    "ax.text(2, 0.3, 'b = 4', fontsize=12, fontweight='bold')\n"
-    "ax.text(-0.8, 1.5, 'a = 3', fontsize=12, fontweight='bold')\n"
-    "ax.text(2.2, 1.8, 'c = 5', fontsize=12, fontweight='bold', color='purple')\n"
-    "ax.set_xlim(-4, 6)\n"
-    "ax.set_ylim(-5, 5)\n"
-    "ax.set_aspect('equal')\n"
-    "ax.axis('off')\n"
-    "ax.legend(loc='upper right')\n"
-    "ax.set_title('Satz des Pythagoras: a² + b² = c²', fontsize=14)\n"
-    "```\n\n"
+    "2. FORMELN: Nutze sauberes LaTeX im Text (z.B. $a^2 + b^2 = c^2$).\n"
+    "3. GRAPHIKEN:\n"
+    "   - Erzeuge KEINE fehlerhaften Python-Zeichnungen für Geometrie oder Pythagoras!\n"
+    "   - Für Funktionsgraphen (z.B. Parabeln wie f(x) = x^2) darfst Du einen sauberen `python_plot` Codeblock erzeugen.\n"
     f"Erklär-Niveau: {st.session_state.level}.\n"
 )
 
@@ -76,23 +68,32 @@ def ask_groq(messages_payload, key):
     except Exception as e:
         return f"Fehler bei der Anfrage: {e}"
 
-def display_response(text):
+def display_response(text, user_query=""):
+    # 1. Automatische Prüfung auf Standard-Geometrie-Themen für perfekte Lehrbuchbilder
+    query_lower = user_query.lower()
+    shown_image = False
+    
+    for key, img_info in STATIC_IMAGES.items():
+        if key in query_lower:
+            st.image(img_info["url"], caption=img_info["title"], use_container_width=True)
+            shown_image = True
+            break
+
+    # 2. Falls ein Python-Plot für Funktionen generiert wurde
     pattern = r"```python_plot\n(.*?)\n```"
     match = re.search(pattern, text, re.DOTALL)
     
-    if match:
-        clean_text = re.sub(pattern, "", text, flags=re.DOTALL)
-        st.markdown(clean_text)
-        
+    clean_text = re.sub(pattern, "", text, flags=re.DOTALL)
+    st.markdown(clean_text)
+
+    if match and not shown_image:
         plot_code = match.group(1)
         try:
             import matplotlib.pyplot as plt
-            import matplotlib.patches as patches
             import numpy as np
             
             plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
-            
-            local_scope = {"plt": plt, "np": np, "patches": patches}
+            local_scope = {"plt": plt, "np": np}
             exec(plot_code, local_scope)
             
             if "fig" in local_scope:
@@ -100,21 +101,19 @@ def display_response(text):
             else:
                 st.pyplot(plt.gcf())
             plt.close('all')
-        except Exception as e:
-            st.error(f"Fehler beim Erstellen der Grafik: {e}")
-    else:
-        st.markdown(text)
+        except Exception:
+            pass
 
 # Bisherige Nachrichten anzeigen
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
-        display_response(msg["content"])
+        display_response(msg["content"], msg.get("user_query", ""))
 
 # Eingabe
-user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Zeige mir den Satz des Pythagoras anschaulich')...")
+user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Erkläre mir den Satz des Pythagoras')...")
 
 if user_input:
-    st.session_state.messages.append({"role": "user", "content": user_input})
+    st.session_state.messages.append({"role": "user", "content": user_input, "user_query": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
 
@@ -123,10 +122,10 @@ if user_input:
     ]
 
     with st.chat_message("assistant"):
-        with st.spinner("Ich erstelle eine farbige Grafik und erkläre..."):
+        with st.spinner("Ich antworte und zeige die passende Grafik..."):
             bot_reply = ask_groq(messages_payload, api_key)
-            display_response(bot_reply)
-            st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+            display_response(bot_reply, user_input)
+            st.session_state.messages.append({"role": "assistant", "content": bot_reply, "user_query": user_input})
 
 # Feedback-Buttons
 st.divider()
