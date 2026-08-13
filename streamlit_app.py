@@ -1,6 +1,5 @@
 import streamlit as st
 import json
-import re
 import urllib.request
 import urllib.error
 
@@ -8,7 +7,7 @@ import urllib.error
 st.set_page_config(page_title="Visueller Mathe-Tutor", page_icon="🧮", layout="centered")
 
 st.title("🧮 Dein interaktiver & visueller Mathe-Tutor")
-st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und Grafiken.")
+st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und echten Grafiken.")
 
 # API Key
 api_key = st.secrets.get("GROQ_API_KEY", None)
@@ -22,32 +21,40 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state:
     st.session_state.level = "normal"
 
-# Wörterbuch mit perfekten, vorgeprüften Lehrbuch-Grafiken
-STATIC_IMAGES = {
+# System-Prompt: ASCII-Grafiken STRIKT verbieten!
+system_prompt = (
+    "Du bist ein freundlicher, geduldiger und hochvisueller Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
+    "STRIKTE REGELN:\n"
+    "1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.\n"
+    "2. ERZEUGE NIEMALS ASCII-GRAFIKEN ODER TEXT-ZEICHNUNGEN (wie '/', '|', '\\', '--->')!\n"
+    "3. Nutze für ALLE Formeln sauberes LaTeX im Text (z.B. $a^2 + b^2 = c^2$).\n"
+    "4. Gib reine, strukturierte Erklärungen mit Stichpunkten ab. Die Grafiken stellt die App automatisch bereit.\n"
+    f"Erklär-Niveau: {st.session_state.level}.\n"
+)
+
+# Bibliothek perfekter, professioneller Grafiken & interaktiver GeoGebra-Applets
+VISUALS = {
     "pythagoras": {
+        "type": "image",
         "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Pythagorean.svg/600px-Pythagorean.svg.png",
-        "title": "📐 Der Satz des Pythagoras (Katheten- und Hypotenusenquadrate)"
+        "title": "📐 Satz des Pythagoras: Katheten- und Hypotenusenquadrate"
     },
     "einheitskreis": {
+        "type": "image",
         "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/600px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png",
         "title": "⭕ Sinus und Kosinus am Einheitskreis"
     },
     "strahlensatz": {
+        "type": "image",
         "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Strahlensatz_1.svg/600px-Strahlensatz_1.svg.png",
         "title": "📐 Der erste Strahlensatz"
+    },
+    "parabel": {
+        "type": "geogebra",
+        "url": "https://www.geogebra.org/material/iframe/id/v89vyfze/width/600/height/400/border/888888/sfsb/true/smb/false/stb/false/stbh/false/ai/true/asb/false/sri/true/rc/false/ld/false/sdz/true/ctl/false",
+        "title": "📈 Interaktive Parabel (Quadratische Funktion)"
     }
 }
-
-system_prompt = (
-    "Du bist ein freundlicher, geduldiger und VISUELLER Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
-    "STRIKTE REGELN:\n"
-    "1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.\n"
-    "2. FORMELN: Nutze sauberes LaTeX im Text (z.B. $a^2 + b^2 = c^2$).\n"
-    "3. GRAPHIKEN:\n"
-    "   - Erzeuge KEINE fehlerhaften Python-Zeichnungen für Geometrie oder Pythagoras!\n"
-    "   - Für Funktionsgraphen (z.B. Parabeln wie f(x) = x^2) darfst Du einen sauberen `python_plot` Codeblock erzeugen.\n"
-    f"Erklär-Niveau: {st.session_state.level}.\n"
-)
 
 def ask_groq(messages_payload, key):
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -69,47 +76,27 @@ def ask_groq(messages_payload, key):
         return f"Fehler bei der Anfrage: {e}"
 
 def display_response(text, user_query=""):
-    # 1. Automatische Prüfung auf Standard-Geometrie-Themen für perfekte Lehrbuchbilder
+    # 1. Prüfen, ob eine professionelle Grafik zur Frage passt
     query_lower = user_query.lower()
-    shown_image = False
     
-    for key, img_info in STATIC_IMAGES.items():
-        if key in query_lower:
-            st.image(img_info["url"], caption=img_info["title"], use_container_width=True)
-            shown_image = True
+    for keyword, vis_info in VISUALS.items():
+        if keyword in query_lower:
+            st.subheader(vis_info["title"])
+            if vis_info["type"] == "image":
+                st.image(vis_info["url"], use_container_width=True)
+            elif vis_info["type"] == "geogebra":
+                st.components.v1.iframe(vis_info["url"], height=400)
             break
 
-    # 2. Falls ein Python-Plot für Funktionen generiert wurde
-    pattern = r"```python_plot\n(.*?)\n```"
-    match = re.search(pattern, text, re.DOTALL)
-    
-    clean_text = re.sub(pattern, "", text, flags=re.DOTALL)
-    st.markdown(clean_text)
-
-    if match and not shown_image:
-        plot_code = match.group(1)
-        try:
-            import matplotlib.pyplot as plt
-            import numpy as np
-            
-            plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
-            local_scope = {"plt": plt, "np": np}
-            exec(plot_code, local_scope)
-            
-            if "fig" in local_scope:
-                st.pyplot(local_scope["fig"])
-            else:
-                st.pyplot(plt.gcf())
-            plt.close('all')
-        except Exception:
-            pass
+    # 2. Text der KI anzeigen (ohne ASCII-Müll)
+    st.markdown(text)
 
 # Bisherige Nachrichten anzeigen
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         display_response(msg["content"], msg.get("user_query", ""))
 
-# Eingabe
+# Eingabefeld
 user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Erkläre mir den Satz des Pythagoras')...")
 
 if user_input:
@@ -122,7 +109,7 @@ if user_input:
     ]
 
     with st.chat_message("assistant"):
-        with st.spinner("Ich antworte und zeige die passende Grafik..."):
+        with st.spinner("Ich antworte und lade die Grafik..."):
             bot_reply = ask_groq(messages_payload, api_key)
             display_response(bot_reply, user_input)
             st.session_state.messages.append({"role": "assistant", "content": bot_reply, "user_query": user_input})
