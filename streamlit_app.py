@@ -22,37 +22,36 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state:
     st.session_state.level = "normal"
 
-# System Prompt für visuelle Aufbereitung & Matplotlib
+# System Prompt für verlässliche Grafiken
 system_prompt = (
     "Du bist ein freundlicher, geduldiger und VISUELLER Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
     "STRIKTE REGELN:\n"
     "1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.\n"
-    "2. FORMELN & SCHREIBWEISE:\n"
-    "   - Nutze für ALLE mathematischen Formeln, Brüche und Variablen sauberes LaTeX.\n"
-    "   - Im Text: $f(x) = x^2 - 4$ oder $\\frac{a}{b}$.\n"
-    "   - Freistehende Wichtige Formeln:\n"
-    "     $$x_{1,2} = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$\n\n"
-    "3. VISUELLE GRAPHIKEN & SKIZZEN:\n"
-    "Wenn eine Zeichnung, ein Funktionsgraph oder eine Geometrie-Skizze der Erklärung hilft (z.B. bei Parabeln, Geraden, Winkeln, Dreiecken, Koordinatensystemen), füge am Ende Deiner Antwort einen speziellen Python-Codeblock ein, der mit ```python_plot beginnt.\n\n"
-    "BEISPIEL FÜR EINEN FUNKTIONSGRAPHEN / GRAPHIK:\n"
+    "2. FORMELN: Nutze sauberes LaTeX im Text (z.B. $a^2 + b^2 = c^2$).\n"
+    "3. ZEICHNUNGEN & GRAPHIKEN:\n"
+    "   WANN IMMER nach einer Grafik, Zeichnung, Funktion oder Geometrie (z.B. Pythagoras, Dreieck, Parabel) gefragt wird, MÜSSTE am Ende ein Codeblock mit ```python_plot eingefügt werden.\n\n"
+    "   REGELN FÜR DEN PLOT-CODE:\n"
+    "   - Nutze NUR matplotlib.pyplot (als plt), numpy (als np) und matplotlib.patches (als patches).\n"
+    "   - Erstelle ein klares Bild ohne unnötigen Schnickschnack.\n"
+    "   - Beende den Codeblock immer mit plt.plot(...) oder ax.add_patch(...).\n\n"
+    "BEISPIEL PYTHAGORAS DREIECK:\n"
     "```python_plot\n"
     "import matplotlib.pyplot as plt\n"
-    "import numpy as np\n\n"
-    "x = np.linspace(-5, 5, 200)\n"
-    "y = x**2 - 2\n\n"
-    "fig, ax = plt.subplots(figsize=(6, 4))\n"
-    "ax.plot(x, y, color='#1f77b4', linewidth=2, label='f(x) = x² - 2')\n"
-    "ax.axhline(0, color='black', linewidth=0.8)\n"
-    "ax.axvline(0, color='black', linewidth=0.8)\n"
-    "ax.grid(True, linestyle='--', alpha=0.6)\n"
-    "ax.legend()\n"
-    "ax.set_title('Funktionsgraph')\n"
+    "import matplotlib.patches as patches\n\n"
+    "fig, ax = plt.subplots(figsize=(5, 5))\n"
+    "ax.plot([0, 4, 0, 0], [0, 0, 3, 0], 'b-', linewidth=2)\n"
+    "ax.add_patch(patches.Rectangle((0, 0), 4, -4, alpha=0.3, color='red'))\n"
+    "ax.add_patch(patches.Rectangle((-3, 0), 3, 3, alpha=0.3, color='green'))\n"
+    "ax.set_xlim(-4, 6)\n"
+    "ax.set_ylim(-5, 5)\n"
+    "ax.set_aspect('equal')\n"
+    "ax.grid(True, linestyle='--')\n"
     "```\n\n"
     f"Erklär-Niveau: {st.session_state.level}.\n"
 )
 
 def ask_groq(messages_payload, key):
-    url = "https://api.groq.com/openai/v1/chat/completions"
+    url = "[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)"
     headers = {
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json",
@@ -82,9 +81,11 @@ def display_response(text):
         plot_code = match.group(1)
         try:
             import matplotlib.pyplot as plt
+            import matplotlib.patches as patches
             import numpy as np
             
-            local_scope = {"plt": plt, "np": np}
+            # Ausführungsumgebung mit allen wichtigen Mathe-Modulen ausstatten
+            local_scope = {"plt": plt, "np": np, "patches": patches}
             exec(plot_code, local_scope)
             
             if "fig" in local_scope:
@@ -92,8 +93,8 @@ def display_response(text):
             else:
                 st.pyplot(plt.gcf())
             plt.close('all')
-        except Exception:
-            st.info("💡 *(Hinweis: Für diesen Aufgabentyp kann die Grafik direkt im Text nachvollzogen werden)*")
+        except Exception as err:
+            st.warning(f"⚠️ Die Grafik konnte nicht gerendert werden. Fehler: {err}")
     else:
         st.markdown(text)
 
@@ -103,7 +104,7 @@ for msg in st.session_state.messages:
         display_response(msg["content"])
 
 # Eingabefeld
-user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Zeichne mir die Funktion f(x) = x^2 - 3')...")
+user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Zeichne mir ein rechtwinkliges Dreieck')...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
