@@ -8,7 +8,7 @@ import urllib.error
 st.set_page_config(page_title="Visueller Mathe-Tutor", page_icon="🧮", layout="centered")
 
 st.title("🧮 Dein interaktiver & visueller Mathe-Tutor")
-st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und anschaulichen Bildern.")
+st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und Zeichnungen.")
 
 # API Key
 api_key = st.secrets.get("GROQ_API_KEY", None)
@@ -22,18 +22,38 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state:
     st.session_state.level = "normal"
 
-# System-Prompt für hochwertige visuelle Bilder & schöne Graphen
+# System Prompt für hochwertige, farbige Lehrbuch-Grafiken
 system_prompt = (
-    "Du bist ein freundlicher, geduldiger und hochvisueller Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
-    "DEINE WICHTIGSTE AUFGABE - ANSCHAULICHE BILDER:\n"
-    "1. Bei bekannten Mathe-Themen (z.B. Satz des Pythagoras, Geometrie, Bruchrechnung, Trigonometrie, Dreiecke, Kreise) sollst Du ein ECHTES, SCHÖNES BILD aus dem Internet einbinden!\n"
-    "   Verwende dazu das Standard-Markdown-Bildformat: ![Titel](URL)\n"
-    "   Nutze verlässliche Bild-URLs aus Wikimedia Commons, z.B.:\n"
-    "   - Pythagoras: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Pythagorean.svg/600px-Pythagorean.svg.png\n"
-    "   - Einheitskreis: https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/600px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png\n"
-    "   - Strahlensatz: https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Strahlensatz_1.svg/600px-Strahlensatz_1.svg.png\n\n"
-    "2. Bei SCHUL-FUNKTIONEN (Parabeln, Geraden): Verwende einen sauberen, hochauflösenden `python_plot` Block mit modernem Design (Grid, schöne Farben, dicke Linien).\n\n"
-    "3. FORMELN: Nutze sauberes LaTeX im Text (z.B. $a^2 + b^2 = c^2$).\n"
+    "Du bist ein freundlicher, geduldiger und VISUELLER Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
+    "STRIKTE REGELN:\n"
+    "1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.\n"
+    "2. ERZEUGE KEINE EXTERNEN BILD-URLS (KEINE Markdown-Links zu Bildern)!\n"
+    "3. ZEICHNUNGEN & GRAFIKEN:\n"
+    "   Wenn nach einer Grafik oder Visualisierung gefragt wird (z.B. Pythagoras, Geometrie, Parabeln), erstelle IMMER einen fehlerfreien `python_plot` Codeblock.\n"
+    "   - Bilde geometrische Formen SCHÖN und FARBIG ab (z.B. mit matplotip.patches.Rectangle oder Polygon).\n"
+    "   - Fülle Flächen mit passender Transparenz (alpha=0.4), wähle schöne Farben (Blau, Rot, Grün) und beschrifte die Seiten/Winkel direkt im Bild mit ax.text().\n\n"
+    "BEISPIEL PYTHAGORAS LEHRBUCH-GRAFIK:\n"
+    "```python_plot\n"
+    "import matplotlib.pyplot as plt\n"
+    "import matplotlib.patches as patches\n\n"
+    "fig, ax = plt.subplots(figsize=(6, 6))\n"
+    "# Dreieck\n"
+    "ax.plot([0, 4, 0, 0], [0, 0, 3, 0], 'k-', linewidth=2.5)\n"
+    "# Kathetenquadrat a^2 (rot)\n"
+    "ax.add_patch(patches.Rectangle((0, 0), -3, 3, facecolor='#ff6b6b', edgecolor='red', alpha=0.5, label='a² = 9'))\n"
+    "# Kathetenquadrat b^2 (blau)\n"
+    "ax.add_patch(patches.Rectangle((0, 0), 4, -4, facecolor='#4d96ff', edgecolor='blue', alpha=0.5, label='b² = 16'))\n"
+    "# Beschriftungen\n"
+    "ax.text(2, 0.3, 'b = 4', fontsize=12, fontweight='bold')\n"
+    "ax.text(-0.8, 1.5, 'a = 3', fontsize=12, fontweight='bold')\n"
+    "ax.text(2.2, 1.8, 'c = 5', fontsize=12, fontweight='bold', color='purple')\n"
+    "ax.set_xlim(-4, 6)\n"
+    "ax.set_ylim(-5, 5)\n"
+    "ax.set_aspect('equal')\n"
+    "ax.axis('off')\n"
+    "ax.legend(loc='upper right')\n"
+    "ax.set_title('Satz des Pythagoras: a² + b² = c²', fontsize=14)\n"
+    "```\n\n"
     f"Erklär-Niveau: {st.session_state.level}.\n"
 )
 
@@ -70,7 +90,6 @@ def display_response(text):
             import matplotlib.patches as patches
             import numpy as np
             
-            # Schöneres Design für Matplotlib aktivieren
             plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
             
             local_scope = {"plt": plt, "np": np, "patches": patches}
@@ -81,8 +100,8 @@ def display_response(text):
             else:
                 st.pyplot(plt.gcf())
             plt.close('all')
-        except Exception:
-            pass
+        except Exception as e:
+            st.error(f"Fehler beim Erstellen der Grafik: {e}")
     else:
         st.markdown(text)
 
@@ -92,7 +111,7 @@ for msg in st.session_state.messages:
         display_response(msg["content"])
 
 # Eingabe
-user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Erkläre mir den Satz des Pythagoras mit Bild')...")
+user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Zeige mir den Satz des Pythagoras anschaulich')...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
@@ -104,7 +123,7 @@ if user_input:
     ]
 
     with st.chat_message("assistant"):
-        with st.spinner("Ich suche das passende Bild und erkläre..."):
+        with st.spinner("Ich erstelle eine farbige Grafik und erkläre..."):
             bot_reply = ask_groq(messages_payload, api_key)
             display_response(bot_reply)
             st.session_state.messages.append({"role": "assistant", "content": bot_reply})
