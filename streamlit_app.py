@@ -8,9 +8,9 @@ import urllib.error
 st.set_page_config(page_title="Visueller Mathe-Tutor", page_icon="🧮", layout="centered")
 
 st.title("🧮 Dein interaktiver & visueller Mathe-Tutor")
-st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und Zeichnungen.")
+st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und anschaulichen Bildern.")
 
-# Get API Key
+# API Key
 api_key = st.secrets.get("GROQ_API_KEY", None)
 
 if not api_key:
@@ -22,31 +22,18 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state:
     st.session_state.level = "normal"
 
-# System Prompt für verlässliche Grafiken
+# System-Prompt für hochwertige visuelle Bilder & schöne Graphen
 system_prompt = (
-    "Du bist ein freundlicher, geduldiger und VISUELLER Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
-    "STRIKTE REGELN:\n"
-    "1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.\n"
-    "2. FORMELN: Nutze sauberes LaTeX im Text (z.B. $a^2 + b^2 = c^2$).\n"
-    "3. ZEICHNUNGEN & GRAPHIKEN:\n"
-    "   WANN IMMER nach einer Grafik, Zeichnung, Funktion oder Geometrie (z.B. Pythagoras, Dreieck, Parabel) gefragt wird, MÜSSTE am Ende ein Codeblock mit ```python_plot eingefügt werden.\n\n"
-    "   REGELN FÜR DEN PLOT-CODE:\n"
-    "   - Nutze NUR matplotlib.pyplot (als plt), numpy (als np) und matplotlib.patches (als patches).\n"
-    "   - Erstelle ein klares Bild ohne unnötigen Schnickschnack.\n"
-    "   - Beende den Codeblock immer mit plt.plot(...) oder ax.add_patch(...).\n\n"
-    "BEISPIEL PYTHAGORAS DREIECK:\n"
-    "```python_plot\n"
-    "import matplotlib.pyplot as plt\n"
-    "import matplotlib.patches as patches\n\n"
-    "fig, ax = plt.subplots(figsize=(5, 5))\n"
-    "ax.plot([0, 4, 0, 0], [0, 0, 3, 0], 'b-', linewidth=2)\n"
-    "ax.add_patch(patches.Rectangle((0, 0), 4, -4, alpha=0.3, color='red'))\n"
-    "ax.add_patch(patches.Rectangle((-3, 0), 3, 3, alpha=0.3, color='green'))\n"
-    "ax.set_xlim(-4, 6)\n"
-    "ax.set_ylim(-5, 5)\n"
-    "ax.set_aspect('equal')\n"
-    "ax.grid(True, linestyle='--')\n"
-    "```\n\n"
+    "Du bist ein freundlicher, geduldiger und hochvisueller Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
+    "DEINE WICHTIGSTE AUFGABE - ANSCHAULICHE BILDER:\n"
+    "1. Bei bekannten Mathe-Themen (z.B. Satz des Pythagoras, Geometrie, Bruchrechnung, Trigonometrie, Dreiecke, Kreise) sollst Du ein ECHTES, SCHÖNES BILD aus dem Internet einbinden!\n"
+    "   Verwende dazu das Standard-Markdown-Bildformat: ![Titel](URL)\n"
+    "   Nutze verlässliche Bild-URLs aus Wikimedia Commons, z.B.:\n"
+    "   - Pythagoras: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Pythagorean.svg/600px-Pythagorean.svg.png\n"
+    "   - Einheitskreis: https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/600px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png\n"
+    "   - Strahlensatz: https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Strahlensatz_1.svg/600px-Strahlensatz_1.svg.png\n\n"
+    "2. Bei SCHUL-FUNKTIONEN (Parabeln, Geraden): Verwende einen sauberen, hochauflösenden `python_plot` Block mit modernem Design (Grid, schöne Farben, dicke Linien).\n\n"
+    "3. FORMELN: Nutze sauberes LaTeX im Text (z.B. $a^2 + b^2 = c^2$).\n"
     f"Erklär-Niveau: {st.session_state.level}.\n"
 )
 
@@ -69,7 +56,6 @@ def ask_groq(messages_payload, key):
     except Exception as e:
         return f"Fehler bei der Anfrage: {e}"
 
-# Hilfsfunktion zum Rendern von Text + dynamischen Diagrammen
 def display_response(text):
     pattern = r"```python_plot\n(.*?)\n```"
     match = re.search(pattern, text, re.DOTALL)
@@ -84,7 +70,9 @@ def display_response(text):
             import matplotlib.patches as patches
             import numpy as np
             
-            # Ausführungsumgebung mit allen wichtigen Mathe-Modulen ausstatten
+            # Schöneres Design für Matplotlib aktivieren
+            plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
+            
             local_scope = {"plt": plt, "np": np, "patches": patches}
             exec(plot_code, local_scope)
             
@@ -93,8 +81,8 @@ def display_response(text):
             else:
                 st.pyplot(plt.gcf())
             plt.close('all')
-        except Exception as err:
-            st.warning(f"⚠️ Die Grafik konnte nicht gerendert werden. Fehler: {err}")
+        except Exception:
+            pass
     else:
         st.markdown(text)
 
@@ -103,8 +91,8 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         display_response(msg["content"])
 
-# Eingabefeld
-user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Zeichne mir ein rechtwinkliges Dreieck')...")
+# Eingabe
+user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Erkläre mir den Satz des Pythagoras mit Bild')...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
@@ -116,7 +104,7 @@ if user_input:
     ]
 
     with st.chat_message("assistant"):
-        with st.spinner("Ich erkläre und zeichne für dich..."):
+        with st.spinner("Ich suche das passende Bild und erkläre..."):
             bot_reply = ask_groq(messages_payload, api_key)
             display_response(bot_reply)
             st.session_state.messages.append({"role": "assistant", "content": bot_reply})
