@@ -7,7 +7,7 @@ import urllib.error
 st.set_page_config(page_title="Visueller Mathe-Tutor", page_icon="🧮", layout="centered")
 
 st.title("🧮 Dein interaktiver & visueller Mathe-Tutor")
-st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und echten Grafiken.")
+st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und professionellen Grafiken.")
 
 # API Key
 api_key = st.secrets.get("GROQ_API_KEY", None)
@@ -21,38 +21,30 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state:
     st.session_state.level = "normal"
 
-# System-Prompt: ASCII-Grafiken STRIKT verbieten!
+# System Prompt: Strenge Anweisung KEINE eigenen Bilder/Links einzufügen!
 system_prompt = (
-    "Du bist ein freundlicher, geduldiger und hochvisueller Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
+    "Du bist ein freundlicher, geduldiger und visuleller Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
     "STRIKTE REGELN:\n"
     "1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.\n"
-    "2. ERZEUGE NIEMALS ASCII-GRAFIKEN ODER TEXT-ZEICHNUNGEN (wie '/', '|', '\\', '--->')!\n"
-    "3. Nutze für ALLE Formeln sauberes LaTeX im Text (z.B. $a^2 + b^2 = c^2$).\n"
-    "4. Gib reine, strukturierte Erklärungen mit Stichpunkten ab. Die Grafiken stellt die App automatisch bereit.\n"
+    "2. ERZEUGE KEINERLEI BILD-LINKS, MARKDOWN-BILDER ODER ASCII-ZEICHNUNGEN (wie '![...]', '/', '|', '--->')!\n"
+    "3. Nutze für ALLE mathematischen Ausdrücke und Formeln sauberes LaTeX (z.B. $a^2 + b^2 = c^2$).\n"
+    "4. Beschränke dich rein auf gut strukturierte, freundliche Text-Erklärungen. Die App bindet Grafiken separat ein.\n"
     f"Erklär-Niveau: {st.session_state.level}.\n"
 )
 
-# Bibliothek perfekter, professioneller Grafiken & interaktiver GeoGebra-Applets
+# Interaktive GeoGebra-Graphen & Vektorgrafiken
 VISUALS = {
     "pythagoras": {
-        "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Pythagorean.svg/600px-Pythagorean.svg.png",
-        "title": "📐 Satz des Pythagoras: Katheten- und Hypotenusenquadrate"
+        "url": "https://www.geogebra.org/material/iframe/id/M8vS4D3U/width/600/height/450/border/888888/sfsb/true/smb/false/stb/false/stbh/false/ai/true/asb/false/sri/true/rc/false/ld/false/sdz/true/ctl/false",
+        "title": "📐 Interaktives Modell: Satz des Pythagoras"
     },
     "einheitskreis": {
-        "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/600px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png",
+        "url": "https://www.geogebra.org/material/iframe/id/vx9M396z/width/600/height/450/border/888888/sfsb/true/smb/false/stb/false/stbh/false/ai/true/asb/false/sri/true/rc/false/ld/false/sdz/true/ctl/false",
         "title": "⭕ Sinus und Kosinus am Einheitskreis"
     },
-    "strahlensatz": {
-        "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Strahlensatz_1.svg/600px-Strahlensatz_1.svg.png",
-        "title": "📐 Der erste Strahlensatz"
-    },
     "parabel": {
-        "type": "geogebra",
         "url": "https://www.geogebra.org/material/iframe/id/v89vyfze/width/600/height/400/border/888888/sfsb/true/smb/false/stb/false/stbh/false/ai/true/asb/false/sri/true/rc/false/ld/false/sdz/true/ctl/false",
-        "title": "📈 Interaktive Parabel (Quadratische Funktion)"
+        "title": "📈 Interaktiver Funktionsgraph (Parabel)"
     }
 }
 
@@ -76,19 +68,16 @@ def ask_groq(messages_payload, key):
         return f"Fehler bei der Anfrage: {e}"
 
 def display_response(text, user_query=""):
-    # 1. Prüfen, ob eine professionelle Grafik zur Frage passt
     query_lower = user_query.lower()
     
+    # 1. GeoGebra Grafik für das passende Thema laden
     for keyword, vis_info in VISUALS.items():
         if keyword in query_lower:
             st.subheader(vis_info["title"])
-            if vis_info["type"] == "image":
-                st.image(vis_info["url"], use_container_width=True)
-            elif vis_info["type"] == "geogebra":
-                st.components.v1.iframe(vis_info["url"], height=400)
+            st.components.v1.iframe(vis_info["url"], height=460)
             break
 
-    # 2. Text der KI anzeigen (ohne ASCII-Müll)
+    # 2. Reinen Erklärungstext anzeigen
     st.markdown(text)
 
 # Bisherige Nachrichten anzeigen
@@ -96,8 +85,8 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         display_response(msg["content"], msg.get("user_query", ""))
 
-# Eingabefeld
-user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Erkläre mir den Satz des Pythagoras')...")
+# Eingabe
+user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Erkläre den Satz des Pythagoras')...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input, "user_query": user_input})
@@ -109,7 +98,7 @@ if user_input:
     ]
 
     with st.chat_message("assistant"):
-        with st.spinner("Ich antworte und lade die Grafik..."):
+        with st.spinner("Ich erkläre und lade das Modell..."):
             bot_reply = ask_groq(messages_payload, api_key)
             display_response(bot_reply, user_input)
             st.session_state.messages.append({"role": "assistant", "content": bot_reply, "user_query": user_input})
