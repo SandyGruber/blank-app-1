@@ -9,6 +9,13 @@ st.set_page_config(page_title="Mathematik-Zauberer", page_icon="🧙‍♂️", 
 st.title("🧙‍♂️ Dein Mathematik-Zauberer")
 st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und passenden Medien-Tipps.")
 
+# Hinweis-Box zu Limit & Umwelt zu Beginn der Session
+st.info(
+    "💡 **Wichtiger Hinweis vorab:**\n"
+    "- **Nutzung:** Dir stehen pro Tag etwa **12 Fragen** zur Verfügung. Überlege dir deine Fragen also gut!\n"
+    "- **Umwelthinweis 🌱:** Jede KI-Anfrage verbraucht Rechenleistung und Strom. Gehe deshalb bewusst und sparsam mit deinen Anfragen um!"
+)
+
 # API Key
 api_key = st.secrets.get("GROQ_API_KEY", None)
 
