@@ -2,12 +2,13 @@ import streamlit as st
 import json
 import urllib.request
 import urllib.error
+import urllib.parse
 
 # Page Setup
 st.set_page_config(page_title="Visueller Mathe-Tutor", page_icon="🧮", layout="centered")
 
 st.title("🧮 Dein interaktiver & visueller Mathe-Tutor")
-st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln, Medien-Tipps und Modellen.")
+st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln, Medien-Tipps und passenden Links.")
 
 # API Key
 api_key = st.secrets.get("GROQ_API_KEY", None)
@@ -21,39 +22,41 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state:
     st.session_state.level = "normal"
 
-# System Prompt mit den neuen Vorgaben für YouTube-Suchtexte, Bild-Links und Ki-Pedia / Wikipedia
+# System Prompt mit strikten Regeln für Ki-Pedia.ch Links & YouTube
 system_prompt = (
     "Du bist ein freundlicher, geduldiger und visuleller Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
     "STRIKTE REGELN:\n"
     "1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.\n"
     "2. Nutze für ALLE mathematischen Ausdrücke und Formeln sauberes LaTeX (z.B. $a^2 + b^2 = c^2$).\n\n"
     "3. YOUTUBE-VIDEOS & SUCHTEXT:\n"
-    "   - Gib KEINE direkten YouTube-Links an, da diese oft veralten oder fehlerhaft sind.\n"
-    "   - Erwähne stattdessen IMMER, dass Erklärvideos auf YouTube sehr lehrreich sind, und liefere den EXAKTEN Suchtext, den die Schüler kopieren und in die YouTube-Suchmaske einfügen können (z.B. `Suchtext: Satz des Pythagoras einfach erklärt Daniel Jung`).\n"
+    "   - Gib KEINE direkten YouTube-Links an.\n"
+    "   - Liefere stattdessen den EXAKTEN Suchtext zum Kopieren für die YouTube-Suchmaske (z.B. `Suchtext: Satz des Pythagoras einfach erklärt`).\n"
     "   - Setze direkt darunter stets folgenden Hinweis:\n"
-    "     '💡 *Hinweis:* Beachte bitte, dass der Zugriff auf YouTube auf deinen Schul- oder Elterngeräten möglicherweise eingeschränkt ist.'\n\n"
-    "4. LINKS ZU BILDERN:\n"
-    "   - Füge funktionierende Links zu anschaulichen Grafiken/Diagrammen ein.\n"
-    "   - Format: '🖼️ *Link zu einer Grafik:* [Name der Grafik](URL) – *Dieses Bild liefert dir weitere Erklärungen zum Thema.*'\n\n"
-    "5. KI-PEDIA / WIKIPEDIA LINK:\n"
-    "   - Verlinke IMMER am Ende der Erklärung die thematisch passende Seite von Kipedia / Wikipedia / Klexikon, da diese für Schülerinnen und Schüler sehr wertvoll ist.\n"
-    "   - Format: '📚 *Mehr zum Thema auf Kipedia / Wikipedia:* [Thema im Kinderlexikon / Wikipedia](URL)' (z.B. https://de.wikipedia.org/wiki/Satz_des_Pythagoras oder https://klexikon.zum.de/wiki/Mathematik).\n\n"
+    "     '💡 *Hinweis:* Beachte bitte, dass der Zugriff auf YouTube auf deinen Schul- oder Elterngeräten möglicherweise eingeschränkt sein kann.'\n\n"
+    "4. KI-PEDIA.CH LINK (PFLICHT):\n"
+    "   - Füge am Ende Deiner Antwort IMMER einen direkten Link zur passenden Artikelseite von Ki-Pedia.ch ein!\n"
+    "   - Format: '📚 *Mehr zum Thema auf Ki-Pedia:* [Thema auf Ki-Pedia.ch lesen](https://ki-pedia.ch/wiki/THEMA)' (Ersetze THEMA durch den passenden Begriff, z.B. https://ki-pedia.ch/wiki/Satz_des_Pythagoras oder nutze die Suche https://ki-pedia.ch/?s=THEMA).\n\n"
+    "5. LINKS ZU BILDERN:\n"
+    "   - Wenn du Links zu vertiefenden Grafiken anfügst, nutze: '🖼️ *Link zu einer Grafik:* [Name der Grafik](URL) – *Dieses Bild liefert weitere Erklärungen.*'\n\n"
     f"Erklär-Niveau: {st.session_state.level}.\n"
 )
 
-# Interaktive GeoGebra-Graphen & Modelle
+# Zuverlässige Schul-Grafiken ohne weiße Ladeflächen
 VISUALS = {
     "pythagoras": {
-        "url": "https://www.geogebra.org/material/iframe/id/M8vS4D3U/width/600/height/450/border/888888/sfsb/true/smb/false/stb/false/stbh/false/ai/true/asb/false/sri/true/rc/false/ld/false/sdz/true/ctl/false",
-        "title": "📐 Interaktives Modell: Satz des Pythagoras"
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Pythagorean.svg/800px-Pythagorean.svg.png",
+        "title": "📐 Der Satz des Pythagoras (Katheten- und Hypotenusenquadrate)",
+        "kipedia": "https://ki-pedia.ch/?s=Pythagoras"
     },
     "einheitskreis": {
-        "url": "https://www.geogebra.org/material/iframe/id/vx9M396z/width/600/height/450/border/888888/sfsb/true/smb/false/stb/false/stbh/false/ai/true/asb/false/sri/true/rc/false/ld/false/sdz/true/ctl/false",
-        "title": "⭕ Sinus und Kosinus am Einheitskreis"
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/800px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png",
+        "title": "⭕ Sinus und Kosinus am Einheitskreis",
+        "kipedia": "https://ki-pedia.ch/?s=Einheitskreis"
     },
-    "parabel": {
-        "url": "https://www.geogebra.org/material/iframe/id/v89vyfze/width/600/height/400/border/888888/sfsb/true/smb/false/stb/false/stbh/false/ai/true/asb/false/sri/true/rc/false/ld/false/sdz/true/ctl/false",
-        "title": "📈 Interaktiver Funktionsgraph (Parabel)"
+    "strahlensatz": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Strahlensatz_1.svg/800px-Strahlensatz_1.svg.png",
+        "title": "📐 Der erste Strahlensatz",
+        "kipedia": "https://ki-pedia.ch/?s=Strahlensatz"
     }
 }
 
@@ -79,11 +82,11 @@ def ask_groq(messages_payload, key):
 def display_response(text, user_query=""):
     query_lower = user_query.lower()
     
-    # 1. GeoGebra Modell laden, falls Thema passt
+    # 1. Zuverlässige Grafik direkt über st.image laden (kein weißer iframe mehr!)
     for keyword, vis_info in VISUALS.items():
         if keyword in query_lower:
             st.subheader(vis_info["title"])
-            st.components.v1.iframe(vis_info["url"], height=460)
+            st.image(vis_info["url"], use_container_width=True)
             break
 
     # 2. Text der KI anzeigen
@@ -95,7 +98,7 @@ for msg in st.session_state.messages:
         display_response(msg["content"], msg.get("user_query", ""))
 
 # Eingabe
-user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Erkläre mir den Satz des Pythagoras')...")
+user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Wie geht Pythagoras?')...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input, "user_query": user_input})
@@ -107,7 +110,7 @@ if user_input:
     ]
 
     with st.chat_message("assistant"):
-        with st.spinner("Ich erkläre und erstelle dir die passenden Hinweise..."):
+        with st.spinner("Ich antworte und lade die Infos..."):
             bot_reply = ask_groq(messages_payload, api_key)
             display_response(bot_reply, user_input)
             st.session_state.messages.append({"role": "assistant", "content": bot_reply, "user_query": user_input})
