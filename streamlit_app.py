@@ -4,9 +4,9 @@ import urllib.request
 import urllib.error
 
 # Page Setup
-st.set_page_config(page_title="Visueller Mathe-Tutor", page_icon="🧮", layout="centered")
+st.set_page_config(page_title="Mathematik-Zauberer", page_icon="🧙‍♂️", layout="centered")
 
-st.title("🧮 Dein interaktiver Mathe-Tutor")
+st.title("🧙‍♂️ Dein Mathematik-Zauberer")
 st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und passenden Medien-Tipps.")
 
 # API Key
@@ -23,7 +23,7 @@ if "level" not in st.session_state:
 
 # System Prompt für saubere Kopier-Hinweise
 system_prompt = f"""
-Du bist ein freundlicher, geduldiger und hilfsbereiter Mathematik-Tutor für Schülerinnen und Schüler.
+Du bist ein freundlicher, geduldiger und hilfsbereiter Mathematik-Zauberer für Schülerinnen und Schüler.
 
 STRIKTE REGELN:
 1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.
@@ -92,7 +92,7 @@ if user_input:
         {"role": m["role"], "content": m["content"]} for m in st.session_state.messages
     ]
 
-    with st.spinner("Ich denke nach..."):
+    with st.spinner("Der Mathematik-Zauberer denkt nach..."):
         bot_reply = ask_groq(messages_payload, api_key)
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         
