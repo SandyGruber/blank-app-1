@@ -26,7 +26,7 @@ system_prompt = (
     "Du bist ein freundlicher, geduldiger und hilfsbereiter Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
     "STRIKTE REGELN:\n"
     "1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.\n"
-    "2. ERZEUGE KEINE BILDER, BILD-LINKS ODER ASCII-ZEICHNUNGEN (kein '![...]', keine Strichzeichnungen)!\n"
+    "2. ERZEUGE KEINE BILDER, BILD-LINKS ODER ASCII-ZEICHNUNGEN!\n"
     "3. Nutze für ALLE mathematischen Ausdrücke und Formeln sauberes LaTeX (z.B. $a^2 + b^2 = c^2$).\n\n"
     "4. YOUTUBE-EMPFEHLUNG (am Ende der Erklärung anfügen):\n"
     "   - Erwähne, dass Erklärvideos auf YouTube sehr lehrreich sind.\n"
@@ -47,7 +47,7 @@ system_prompt = (
 )
 
 def ask_groq(messages_payload, key):
-    url = "[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)"
+    url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json",
@@ -62,21 +62,47 @@ def ask_groq(messages_payload, key):
         with urllib.request.urlopen(req) as response:
             res_data = json.loads(response.read().decode('utf-8'))
             return res_data["choices"][0]["message"]["content"]
+    except urllib.error.HTTPError as e:
+        return f"⚠️ Fehler bei der Verbindung (HTTP {e.code}). Bitte versuche es gleich noch einmal."
     except Exception as e:
-        return f"Fehler bei der Anfrage: {e}"
+        return f"⚠️ Fehler bei der Anfrage: {e}"
 
-def display_response(text):
-    st.markdown(text)
-
-# Bisherige Nachrichten anzeigen
+# Bisherige Nachrichten im Chat anzeigen
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
-        display_response(msg["content"])
+        st.markdown(msg["content"])
 
-# Eingabefeld
+# Eingabefeld für die Fragen der Schüler
 user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Wie geht der Satz des Pythagoras?')...")
 
 if user_input:
+    # Benutzereingabe speichern
     st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user"):
-        st.markdown(user_input)
+    
+    # Nachrichtenverlauf aufbauen
+    messages_payload = [{"role": "system", "content": system_prompt}] + [
+        {"role": m["role"], "content": m["content"]} for m in st.session_state.messages
+    ]
+
+    # Antwort generieren
+    with st.spinner("Ich denke nach..."):
+        bot_reply = ask_groq(messages_payload, api_key)
+        st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+        
+    # Sofortiger Rerun für flüssige Anzeige
+    st.rerun()
+
+# Feedback-Buttons
+st.divider()
+st.write("**Wie war die Erklärung?**")
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("🔴 Zu schwer (Einfacher erklären)"):
+        st.session_state.level = "einfach"
+        st.toast("Alles klar! Die nächsten Erklärungen werden einfacher.")
+
+with col2:
+    if st.button("🟢 Zu einfach (Mehr Details)"):
+        st.session_state.level = "schwer"
+        st.toast("Super! Ich erkläre es dir beim nächsten Mal genauer.")
