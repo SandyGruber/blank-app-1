@@ -9,7 +9,7 @@ st.set_page_config(page_title="Visueller Mathe-Tutor", page_icon="🧮", layout=
 st.title("🧮 Dein interaktiver Mathe-Tutor")
 st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und passenden Medien-Tipps.")
 
-# API Key
+# API Key aus den Streamlit Secrets laden
 api_key = st.secrets.get("GROQ_API_KEY", None)
 
 if not api_key:
@@ -21,7 +21,7 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state:
     st.session_state.level = "normal"
 
-# System Prompt für saubere, schülerfreundliche Kopier-Hinweise
+# System Prompt mit sauberen Kopier-Hinweisen für Schüler
 system_prompt = (
     "Du bist ein freundlicher, geduldiger und hilfsbereiter Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
     "STRIKTE REGELN:\n"
@@ -33,7 +33,7 @@ system_prompt = (
     "   - Biete einen direkten Link zu YouTube an: [Zu YouTube wechseln](https://www.youtube.com)\n"
     "   - Formatiere den Suchtext exakt so, damit Schüler ihn kinderleicht kopieren können:\n\n"
     "     👉 **Kopiere diesen Suchtext für die YouTube-Suche:**\n"
-    "     *(Fahre mit der Maus über das graue Feld und klicke oben rechts auf das kleine Klemmbrett-Symbol 📋 zum Kopieren!)* 👇\n"
+    "     *(Fahre mit der Maus über das graue Feld und klicke oben rechts auf das kleine Klemmbrett-Symbol zum Kopieren!)* 👇\n"
     "     ```text\n"
     "     Satz des Pythagoras einfach erklärt\n"
     "     ```\n"
@@ -43,7 +43,7 @@ system_prompt = (
     "   - Weise darauf hin, dass [Ki-Pedia.ch](https://ki-pedia.ch) eine hervorragende Seite zum Forschen und Nachschlagen für Schülerinnen und Schüler ist.\n"
     "   - Formatiere den Suchtext für Ki-Pedia ebenfalls exakt so:\n\n"
     "     👉 **Kopiere diesen Suchtext für Ki-Pedia.ch:**\n"
-    "     *(Fahre mit der Maus über das graue Feld und klicke oben rechts auf das kleine Klemmbrett-Symbol 📋 zum Kopieren!)* 👇\n"
+    "     *(Fahre mit der Maus über das graue Feld und klicke oben rechts auf das kleine Klemmbrett-Symbol zum Kopieren!)* 👇\n"
     "     ```text\n"
     "     Satz des Pythagoras\n"
     "
