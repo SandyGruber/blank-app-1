@@ -7,7 +7,7 @@ import urllib.error
 st.set_page_config(page_title="Visueller Mathe-Tutor", page_icon="🧮", layout="centered")
 
 st.title("🧮 Dein interaktiver & visueller Mathe-Tutor")
-st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln, Modellen und nützlichen Links.")
+st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln, Medien-Tipps und Modellen.")
 
 # API Key
 api_key = st.secrets.get("GROQ_API_KEY", None)
@@ -21,19 +21,23 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state:
     st.session_state.level = "normal"
 
-# System Prompt mit klaren Regeln für YouTube- und Bild-Links
+# System Prompt mit den neuen Vorgaben für YouTube-Suchtexte, Bild-Links und Ki-Pedia / Wikipedia
 system_prompt = (
     "Du bist ein freundlicher, geduldiger und visuleller Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
     "STRIKTE REGELN:\n"
     "1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.\n"
-    "2. ERZEUGE KEINE EMBEDDED MARKDOWN BILDER (kein '![...](url)'), sondern nutze reine Text-Links!\n"
-    "3. Nutze für ALLE mathematischen Ausdrücke und Formeln sauberes LaTeX (z.B. $a^2 + b^2 = c^2$).\n\n"
-    "4. YOUTUBE-VIDEOS & HINWEIS:\n"
-    "   Wenn Du passende YouTube-Videos zur Vertiefung empfiehlst, setze DIREKT unter den Video-Link zwingend folgenden Hinweis:\n"
-    "   '💡 *Hinweis:* Dieses Video ist sehr lehrreich! Beachte jedoch, dass der Zugriff auf YouTube auf deinen Schul- oder Elterngeräten möglicherweise eingeschränkt ist.'\n\n"
-    "5. LINKS ZU BILDERN & GRAFIKEN:\n"
-    "   Wenn Du Links zu externen Bildern oder Infografiken anfügst, deklariere sie klar so:\n"
-    "   '🖼️ *Link zu einer Grafik:* [Name der Grafik](URL) – *Dieses Bild liefert dir weitere Erklärungen zum Thema.*'\n\n"
+    "2. Nutze für ALLE mathematischen Ausdrücke und Formeln sauberes LaTeX (z.B. $a^2 + b^2 = c^2$).\n\n"
+    "3. YOUTUBE-VIDEOS & SUCHTEXT:\n"
+    "   - Gib KEINE direkten YouTube-Links an, da diese oft veralten oder fehlerhaft sind.\n"
+    "   - Erwähne stattdessen IMMER, dass Erklärvideos auf YouTube sehr lehrreich sind, und liefere den EXAKTEN Suchtext, den die Schüler kopieren und in die YouTube-Suchmaske einfügen können (z.B. `Suchtext: Satz des Pythagoras einfach erklärt Daniel Jung`).\n"
+    "   - Setze direkt darunter stets folgenden Hinweis:\n"
+    "     '💡 *Hinweis:* Beachte bitte, dass der Zugriff auf YouTube auf deinen Schul- oder Elterngeräten möglicherweise eingeschränkt ist.'\n\n"
+    "4. LINKS ZU BILDERN:\n"
+    "   - Füge funktionierende Links zu anschaulichen Grafiken/Diagrammen ein.\n"
+    "   - Format: '🖼️ *Link zu einer Grafik:* [Name der Grafik](URL) – *Dieses Bild liefert dir weitere Erklärungen zum Thema.*'\n\n"
+    "5. KI-PEDIA / WIKIPEDIA LINK:\n"
+    "   - Verlinke IMMER am Ende der Erklärung die thematisch passende Seite von Kipedia / Wikipedia / Klexikon, da diese für Schülerinnen und Schüler sehr wertvoll ist.\n"
+    "   - Format: '📚 *Mehr zum Thema auf Kipedia / Wikipedia:* [Thema im Kinderlexikon / Wikipedia](URL)' (z.B. https://de.wikipedia.org/wiki/Satz_des_Pythagoras oder https://klexikon.zum.de/wiki/Mathematik).\n\n"
     f"Erklär-Niveau: {st.session_state.level}.\n"
 )
 
@@ -75,14 +79,14 @@ def ask_groq(messages_payload, key):
 def display_response(text, user_query=""):
     query_lower = user_query.lower()
     
-    # 1. GeoGebra Modell laden, falls passend
+    # 1. GeoGebra Modell laden, falls Thema passt
     for keyword, vis_info in VISUALS.items():
         if keyword in query_lower:
             st.subheader(vis_info["title"])
             st.components.v1.iframe(vis_info["url"], height=460)
             break
 
-    # 2. Text-Antwort der KI darstellen
+    # 2. Text der KI anzeigen
     st.markdown(text)
 
 # Bisherige Nachrichten anzeigen
@@ -91,7 +95,7 @@ for msg in st.session_state.messages:
         display_response(msg["content"], msg.get("user_query", ""))
 
 # Eingabe
-user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Erkläre mir den Satz des Pythagoras mit Video-Tipp')...")
+user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Erkläre mir den Satz des Pythagoras')...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input, "user_query": user_input})
@@ -103,7 +107,7 @@ if user_input:
     ]
 
     with st.chat_message("assistant"):
-        with st.spinner("Ich antworte und suche nützliche Links..."):
+        with st.spinner("Ich erkläre und erstelle dir die passenden Hinweise..."):
             bot_reply = ask_groq(messages_payload, api_key)
             display_response(bot_reply, user_input)
             st.session_state.messages.append({"role": "assistant", "content": bot_reply, "user_query": user_input})
