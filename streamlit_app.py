@@ -7,7 +7,7 @@ import urllib.error
 st.set_page_config(page_title="Visueller Mathe-Tutor", page_icon="🧮", layout="centered")
 
 st.title("🧮 Dein interaktiver & visueller Mathe-Tutor")
-st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln und professionellen Grafiken.")
+st.write("Stelle mir eine Frage zur Mathematik! Ich helfe dir mit Erklärungen, Formeln, Modellen und nützlichen Links.")
 
 # API Key
 api_key = st.secrets.get("GROQ_API_KEY", None)
@@ -21,18 +21,23 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state:
     st.session_state.level = "normal"
 
-# System Prompt: Strenge Anweisung KEINE eigenen Bilder/Links einzufügen!
+# System Prompt mit klaren Regeln für YouTube- und Bild-Links
 system_prompt = (
     "Du bist ein freundlicher, geduldiger und visuleller Mathematik-Tutor für Schülerinnen und Schüler.\n\n"
     "STRIKTE REGELN:\n"
     "1. Beantworte AUSSCHLIESSLICH Fragen zur Mathematik.\n"
-    "2. ERZEUGE KEINERLEI BILD-LINKS, MARKDOWN-BILDER ODER ASCII-ZEICHNUNGEN (wie '![...]', '/', '|', '--->')!\n"
-    "3. Nutze für ALLE mathematischen Ausdrücke und Formeln sauberes LaTeX (z.B. $a^2 + b^2 = c^2$).\n"
-    "4. Beschränke dich rein auf gut strukturierte, freundliche Text-Erklärungen. Die App bindet Grafiken separat ein.\n"
+    "2. ERZEUGE KEINE EMBEDDED MARKDOWN BILDER (kein '![...](url)'), sondern nutze reine Text-Links!\n"
+    "3. Nutze für ALLE mathematischen Ausdrücke und Formeln sauberes LaTeX (z.B. $a^2 + b^2 = c^2$).\n\n"
+    "4. YOUTUBE-VIDEOS & HINWEIS:\n"
+    "   Wenn Du passende YouTube-Videos zur Vertiefung empfiehlst, setze DIREKT unter den Video-Link zwingend folgenden Hinweis:\n"
+    "   '💡 *Hinweis:* Dieses Video ist sehr lehrreich! Beachte jedoch, dass der Zugriff auf YouTube auf deinen Schul- oder Elterngeräten möglicherweise eingeschränkt ist.'\n\n"
+    "5. LINKS ZU BILDERN & GRAFIKEN:\n"
+    "   Wenn Du Links zu externen Bildern oder Infografiken anfügst, deklariere sie klar so:\n"
+    "   '🖼️ *Link zu einer Grafik:* [Name der Grafik](URL) – *Dieses Bild liefert dir weitere Erklärungen zum Thema.*'\n\n"
     f"Erklär-Niveau: {st.session_state.level}.\n"
 )
 
-# Interaktive GeoGebra-Graphen & Vektorgrafiken
+# Interaktive GeoGebra-Graphen & Modelle
 VISUALS = {
     "pythagoras": {
         "url": "https://www.geogebra.org/material/iframe/id/M8vS4D3U/width/600/height/450/border/888888/sfsb/true/smb/false/stb/false/stbh/false/ai/true/asb/false/sri/true/rc/false/ld/false/sdz/true/ctl/false",
@@ -70,14 +75,14 @@ def ask_groq(messages_payload, key):
 def display_response(text, user_query=""):
     query_lower = user_query.lower()
     
-    # 1. GeoGebra Grafik für das passende Thema laden
+    # 1. GeoGebra Modell laden, falls passend
     for keyword, vis_info in VISUALS.items():
         if keyword in query_lower:
             st.subheader(vis_info["title"])
             st.components.v1.iframe(vis_info["url"], height=460)
             break
 
-    # 2. Reinen Erklärungstext anzeigen
+    # 2. Text-Antwort der KI darstellen
     st.markdown(text)
 
 # Bisherige Nachrichten anzeigen
@@ -86,7 +91,7 @@ for msg in st.session_state.messages:
         display_response(msg["content"], msg.get("user_query", ""))
 
 # Eingabe
-user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Erkläre den Satz des Pythagoras')...")
+user_input = st.chat_input("Deine Mathe-Frage (z.B. 'Erkläre mir den Satz des Pythagoras mit Video-Tipp')...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input, "user_query": user_input})
@@ -98,7 +103,7 @@ if user_input:
     ]
 
     with st.chat_message("assistant"):
-        with st.spinner("Ich erkläre und lade das Modell..."):
+        with st.spinner("Ich antworte und suche nützliche Links..."):
             bot_reply = ask_groq(messages_payload, api_key)
             display_response(bot_reply, user_input)
             st.session_state.messages.append({"role": "assistant", "content": bot_reply, "user_query": user_input})
