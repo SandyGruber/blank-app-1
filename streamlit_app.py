@@ -73,8 +73,7 @@ def ask_openrouter(messages_history, key):
         {"role": m["role"], "content": m["content"]} for m in messages_history
     ]
     
-    # Dauerhaft kostenfreies Modell auf OpenRouter
-   data = {
+    data = {
         "model": "openrouter/auto",
         "messages": payload_messages
     }
