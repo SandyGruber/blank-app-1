@@ -70,7 +70,7 @@ def ask_gemini(messages_history):
         
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="models/gemini-2.5-flash",
             contents=contents,
             config={"system_instruction": system_prompt}
         )
