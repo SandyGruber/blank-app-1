@@ -24,10 +24,10 @@ if len(st.session_state.messages) == 0:
     )
 
 # API Key aus den Secrets laden
-api_key = st.secrets.get("OPENAI_API_KEY", None)
+api_key = st.secrets.get("OPENROUTER_API_KEY", None)
 
 if not api_key:
-    st.error("⚠️ Bitte OPENAI_API_KEY in den Streamlit Secrets hinterlegen!")
+    st.error("⚠️ Bitte OPENROUTER_API_KEY in den Streamlit Secrets hinterlegen!")
     st.stop()
 
 # System Prompt
@@ -60,8 +60,8 @@ system_prompt = (
     f"Erklär-Niveau: {st.session_state.level}.\n"
 )
 
-def ask_openai(messages_history, key):
-    url = "https://api.openai.com/v1/chat/completions"
+def ask_openrouter(messages_history, key):
+    url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json"
@@ -72,7 +72,7 @@ def ask_openai(messages_history, key):
     ]
     
     data = {
-        "model": "gpt-4o-mini",
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
         "messages": payload_messages
     }
     
@@ -98,7 +98,7 @@ if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     
     with st.spinner("Der Mathematik-Zauberer denkt nach..."):
-        bot_reply = ask_openai(st.session_state.messages, api_key)
+        bot_reply = ask_openrouter(st.session_state.messages, api_key)
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         
     st.rerun()
