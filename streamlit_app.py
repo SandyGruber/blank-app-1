@@ -74,7 +74,7 @@ def ask_openrouter(messages_history, key):
     ]
     
     data = {
-        "model": "google/gemini-2.0-flash-lite-001:free",
+        "model": "meta-llama/llama-3.1-8b-instruct:free",
         "messages": payload_messages
     }
     
