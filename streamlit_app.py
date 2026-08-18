@@ -1,5 +1,7 @@
 import streamlit as st
-from google import genai
+import json
+import urllib.request
+import urllib.error
 
 # Page Setup
 st.set_page_config(page_title="Mathematik-Zauberer", page_icon="🧙‍♂️", layout="centered")
@@ -22,13 +24,13 @@ if len(st.session_state.messages) == 0:
     )
 
 # API Key aus den Secrets laden
-api_key = st.secrets.get("GEMINI_API_KEY", None)
+api_key = st.secrets.get("OPENAI_API_KEY", None)
 
 if not api_key:
-    st.error("⚠️ Bitte GEMINI_API_KEY in den Streamlit Secrets hinterlegen!")
+    st.error("⚠️ Bitte OPENAI_API_KEY in den Streamlit Secrets hinterlegen!")
     st.stop()
 
-# System Prompt mit exakter Strukturierung für die Links
+# System Prompt
 system_prompt = (
     "Du bist ein freundlicher, geduldiger und hilfsbereiter Mathematik-Zauberer für Schülerinnen und Schüler.\n\n"
     "STRIKTE REGELN:\n"
@@ -58,27 +60,33 @@ system_prompt = (
     f"Erklär-Niveau: {st.session_state.level}.\n"
 )
 
-# Gemini Client initialisieren
-client = genai.Client(api_key=api_key)
-
-def ask_gemini(messages_history):
-    # Verlauf für Gemini formatieren
-    contents = []
-    for msg in messages_history:
-        role = "user" if msg["role"] == "user" else "model"
-        contents.append({"role": role, "parts": [{"text": msg["content"]}]})
-        
+def ask_openai(messages_history, key):
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json"
+    }
+    
+    payload_messages = [{"role": "system", "content": system_prompt}] + [
+        {"role": m["role"], "content": m["content"]} for m in messages_history
+    ]
+    
+    data = {
+        "model": "gpt-4o-mini",
+        "messages": payload_messages
+    }
+    
+    req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers)
     try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents,
-            config={"system_instruction": system_prompt}
-        )
-        return response.text
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode('utf-8'))
+            return res_data["choices"][0]["message"]["content"]
+    except urllib.error.HTTPError as e:
+        return f"⚠️ Fehler bei der Verbindung (HTTP {e.code}). Bitte versuche es gleich noch einmal."
     except Exception as e:
         return f"⚠️ Fehler bei der Anfrage: {e}"
 
-# Bisherige Nachrichten im Chat anzeigen
+# Bisherige Nachrichten anzeigen
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -90,7 +98,7 @@ if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     
     with st.spinner("Der Mathematik-Zauberer denkt nach..."):
-        bot_reply = ask_gemini(st.session_state.messages)
+        bot_reply = ask_openai(st.session_state.messages, api_key)
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         
     st.rerun()
