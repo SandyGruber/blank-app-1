@@ -1,7 +1,5 @@
 import streamlit as st
-import json
-import urllib.request
-import urllib.error
+from google import genai
 
 # Page Setup
 st.set_page_config(page_title="Mathematik-Zauberer", page_icon="🧙‍♂️", layout="centered")
@@ -60,28 +58,23 @@ system_prompt = (
     f"Erklär-Niveau: {st.session_state.level}.\n"
 )
 
-def ask_gemini(messages_history, key):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}"
-    headers = {"Content-Type": "application/json"}
-    
-    # Konvertieren des Verlaufs für die Google Gemini API
+# Gemini Client initialisieren
+client = genai.Client(api_key=api_key)
+
+def ask_gemini(messages_history):
+    # Verlauf für Gemini formatieren
     contents = []
     for msg in messages_history:
         role = "user" if msg["role"] == "user" else "model"
         contents.append({"role": role, "parts": [{"text": msg["content"]}]})
         
-    data = {
-        "system_instruction": {"parts": [{"text": system_prompt}]},
-        "contents": contents
-    }
-    
-    req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers)
     try:
-        with urllib.request.urlopen(req) as response:
-            res_data = json.loads(response.read().decode('utf-8'))
-            return res_data["candidates"][0]["content"]["parts"][0]["text"]
-    except urllib.error.HTTPError as e:
-        return f"⚠️ Fehler bei der Verbindung (HTTP {e.code}). Bitte versuche es gleich noch einmal."
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=contents,
+            config={"system_instruction": system_prompt}
+        )
+        return response.text
     except Exception as e:
         return f"⚠️ Fehler bei der Anfrage: {e}"
 
@@ -97,7 +90,7 @@ if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     
     with st.spinner("Der Mathematik-Zauberer denkt nach..."):
-        bot_reply = ask_gemini(st.session_state.messages, api_key)
+        bot_reply = ask_gemini(st.session_state.messages)
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         
     st.rerun()
