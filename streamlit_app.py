@@ -28,7 +28,7 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state:
     st.session_state.level = "normal"
 
-# System Prompt mit exakter Strukturierung für die Links (ohne F-String-Konflikte)
+# System Prompt
 system_prompt = (
     "Du bist ein freundlicher, geduldiger und hilfsbereiter Mathematik-Zauberer für Schülerinnen und Schüler.\n\n"
     "STRIKTE REGELN:\n"
@@ -59,17 +59,27 @@ system_prompt = (
 )
 
 def ask_groq(messages_payload, key):
+    # Korrigierte, direkte API-URL für Groq
     url = "https://api.groq.com/openai/v1/chat/completions"
+    
     headers = {
         "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        "Content-Type": "application/json"
     }
+    
     data = {
         "model": "llama-3.3-70b-versatile",
-        "messages": messages_payload
+        "messages": messages_payload,
+        "temperature": 0.7
     }
-    req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers)
+    
+    req = urllib.request.Request(
+        url, 
+        data=json.dumps(data).encode('utf-8'), 
+        headers=headers,
+        method="POST"
+    )
+    
     try:
         with urllib.request.urlopen(req) as response:
             res_data = json.loads(response.read().decode('utf-8'))
