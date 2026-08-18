@@ -30,7 +30,7 @@ if not api_key:
     st.error("⚠️ Bitte OPENROUTER_API_KEY in den Streamlit Secrets hinterlegen!")
     st.stop()
 
-# System Prompt ohne F-String (verhindert alle Syntax-Konflikte)
+# System Prompt
 system_prompt = (
     "Du bist ein freundlicher, geduldiger und hilfsbereiter Mathematik-Zauberer für Schülerinnen und Schüler.\n\n"
     "STRIKTE REGELN:\n"
@@ -73,8 +73,9 @@ def ask_openrouter(messages_history, key):
         {"role": m["role"], "content": m["content"]} for m in messages_history
     ]
     
+    # Dauerhaft kostenfreies Modell auf OpenRouter
     data = {
-        "model": "meta-llama/llama-3.1-8b-instruct:free",
+        "model": "deepseek/deepseek-r1:free",
         "messages": payload_messages
     }
     
