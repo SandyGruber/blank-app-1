@@ -74,8 +74,8 @@ def ask_openrouter(messages_history, key):
     ]
     
     # Dauerhaft kostenfreies Modell auf OpenRouter
-    data = {
-        "model": "deepseek/deepseek-r1:free",
+   data = {
+        "model": "openrouter/auto",
         "messages": payload_messages
     }
     
